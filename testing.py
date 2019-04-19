@@ -34,26 +34,10 @@ def get_min_wrt(d, s):
 # K.set_session(session)
 
 model = load_model("malconv.h5")
-x = get_sample("PE/c0242d686b4c1707f9db2eb5afdd306507ceb5637d72662dff56c439330dbdf1")
-get_emb_layer = K.function([model.input], [model.layers[1].output])
-# Z = get_emb_layer([x])[0]
+x = get_sample("PE/Backdoor3.exe")
 
 session = K.get_session()
 grads = K.gradients(model.output, model.layers[1].output)
-
-# grads_ = K.function([model.input], grads)
-
-# session.run(tf.initialiaze_all_variables())
-
-# grads_ = session.run(grads, feed_dict={model.input: [x]})
-
-# grads_ = -grads_[0][0]
-
-# print(grads_)
-
-# print("BEFORE")
-# print(x[:61])
-
 
 
 I = np.arange(2, int(0x3c))
@@ -105,3 +89,5 @@ print("AFTER")
 print(x_0[:61])
 print(model.predict(np.asarray([x_0])))
 
+with open("output.exe", 'w') as outf:
+	outf.write(x_0)
