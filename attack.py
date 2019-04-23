@@ -3,8 +3,14 @@ from keras.models import load_model
 from keras import backend as K
 import numpy as np
 import os
+import argparse
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
+parser = argparse.ArgumentParser()
+parser.add_argument("sample")
+args = parser.parse_args()
 
 maxlen = 2**20
 padding_char = 256
@@ -28,51 +34,51 @@ def get_min_wrt(d, s):
 			return x
 	return 0
 
-
 model = load_model("malconv.h5")
-x = get_sample("PE/Backdoor3.exe")
+x = get_sample(args.sample)
 
 session = K.get_session()
 grads = K.gradients(model.output, model.layers[1].output)
 
 
+
 I = np.arange(2, int(0x3c))
-T = 10
+T = 100
 t = 0
 M = np.array(np.arange(0,2**20))
 M[255:] = 0
 M_emb = session.run(model.layers[1].output, feed_dict={model.input: [M]})[0]
 x_0 = np.copy(x)
 pred = model.predict(np.asarray([x]))
-
+print("================={}==================".format(args.sample))
 while(pred > 0.5 and t < T):
-	# print(x_0)
-	Z = session.run(model.layers[1].output, feed_dict={model.input: [x_0]})[0]
-	# print("====================EMBEDDED LAYER====================")
-	# print(Z)
-	adv_x = []
-	grads_ = session.run(grads, feed_dict={model.input: [x_0]})
-	grads_ = -grads_[0][0]
-	# print("====================GRADIENTS====================")
-	# print(grads_)
-	for i in I:
-		g = grads_[i]/np.linalg.norm(grads_[i], 2)
-		s = []
-		d = []
-		for b in range(0,256):
-			z_b = M_emb[b]
-			s.append(np.dot(g.T,(z_b - Z[i])))
-			d.append(np.linalg.norm(z_b - (Z[i] + s[b]*g)))
-			
-		adv_x.append(get_min_wrt(d,s))
-	x_0[2:int(0x3c)] = adv_x
-	# print("====================ADVERSARIAL BYTES====================")
-	# print(adv_x)
-	pred = model.predict(np.asarray([x_0]))
-	print(pred)
-	print("Iteration n: {}".format(t))
-	# print(x[:int(0x3c)])
-	t = t + 1
+        # print(x_0)
+        Z = session.run(model.layers[1].output, feed_dict={model.input: [x_0]})[0]
+        # print("====================EMBEDDED LAYER====================")
+        # print(Z)
+        adv_x = []
+        grads_ = session.run(grads, feed_dict={model.input: [x_0]})
+        grads_ = -grads_[0][0]
+        # print("====================GRADIENTS====================")
+        # print(grads_)
+        for i in I:
+                g = grads_[i]/np.linalg.norm(grads_[i], 2)
+                s = []
+                d = []
+                for b in range(0,256):
+                        z_b = M_emb[b]
+                        s.append(np.dot(g.T,(z_b - Z[i])))
+                        d.append(np.linalg.norm(z_b - (Z[i] + s[b]*g)))
+                        
+                adv_x.append(get_min_wrt(d,s))
+        x_0[2:int(0x3c)] = adv_x
+        # print("====================ADVERSARIAL BYTES====================")
+        # print(adv_x)
+        pred = model.predict(np.asarray([x_0]))
+        print(pred)
+        print("Iteration n: {}".format(t))
+        # print(x[:int(0x3c)])
+        t = t + 1
 
 # print(adv_x)
 
